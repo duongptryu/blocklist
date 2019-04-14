@@ -6,14 +6,28 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func TestSetup(t *testing.T) {
-	c := caddy.NewTestController("dns", `blocklist`)
-	if err := setup(c); err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
+func TestSetupValidCfg(t *testing.T) {
+	for _, cfg := range []string{
+		`blocklist https://foo.bar`,
+		`blocklist http://baz.wop/dir/path {
+			always_allow fish
+		}`,
+	} {
+		c := caddy.NewTestController("dns", cfg)
+		if err := setup(c); err != nil {
+			t.Errorf("Expected no errors, but got %v from %q", err, cfg)
+		}
 	}
+}
 
-	c = caddy.NewTestController("dns", `blocklist more`)
-	if err := setup(c); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
+func TestSetupInvalidCfg(t *testing.T) {
+	for _, cfg := range []string{
+		`blocklist`,
+		`blocklist https://foo.bar a`,
+	} {
+		c := caddy.NewTestController("dns", cfg)
+		if err := setup(c); err == nil {
+			t.Errorf("Expected errors, but got %v from %q", err, cfg)
+		}
 	}
 }
