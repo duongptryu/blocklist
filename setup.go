@@ -1,4 +1,4 @@
-package block
+package blocklist
 
 import (
 	"github.com/coredns/coredns/core/dnsserver"
@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	caddy.RegisterPlugin("block", caddy.Plugin{
+	caddy.RegisterPlugin("blocklist", caddy.Plugin{
 		ServerType: "dns",
 		Action:     setup,
 	})
@@ -18,7 +18,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	c.Next()
 	if c.NextArg() {
-		return plugin.Error("block", c.ArgErr())
+		return plugin.Error("blocklist", c.ArgErr())
 	}
 
 	block := New()

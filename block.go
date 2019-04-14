@@ -1,7 +1,4 @@
-// Package example is a CoreDNS plugin that prints "example" to stdout on every packet received.
-//
-// It serves as an example CoreDNS plugin with numerous code comments.
-package block
+package blocklist
 
 import (
 	"sync"
@@ -15,10 +12,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-var log = clog.NewWithPlugin("block")
+var log = clog.NewWithPlugin("blocklist")
 
-// Block is the block plugin.
-type Block struct {
+// Blocklist is the blocklist plugin.
+type Blocklist struct {
 	list map[string]struct{}
 
 	update map[string]struct{}
@@ -28,8 +25,8 @@ type Block struct {
 	Next plugin.Handler
 }
 
-func New() *Block {
-	return &Block{
+func New() *Blocklist {
+	return &Blocklist{
 		list:   make(map[string]struct{}),
 		update: make(map[string]struct{}),
 		stop:   make(chan struct{}),
@@ -37,8 +34,8 @@ func New() *Block {
 }
 
 // ServeDNS implements the plugin.Handler interface.
-func (b *Block) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := request.Request{W: w, Req: r, Context: ctx}
+func (b *Blocklist) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	state := request.Request{W: w, Req: r}
 
 	if b.blocked(state.Name()) {
 		blockCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
@@ -55,10 +52,10 @@ func (b *Block) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 }
 
 // Name implements the Handler interface.
-func (b *Block) Name() string { return "block" }
+func (b *Blocklist) Name() string { return "blocklist" }
 
 // blocked returns true when name is in list or is a subdomain for any names in the list. "localhost." is never blocked.
-func (b *Block) blocked(name string) bool {
+func (b *Blocklist) blocked(name string) bool {
 	b.RLock()
 	defer b.RUnlock()
 

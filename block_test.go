@@ -1,4 +1,4 @@
-package block
+package blocklist
 
 import (
 	"strings"
@@ -17,7 +17,7 @@ func TestBlocked(t *testing.T) {
 com
 `
 
-	b := new(Block)
+	b := new(Blocklist)
 
 	r := strings.NewReader(list)
 	l := make(map[string]struct{})

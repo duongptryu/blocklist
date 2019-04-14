@@ -1,4 +1,4 @@
-package block
+package blocklist
 
 import (
 	"strings"
@@ -13,7 +13,7 @@ func TestListParse(t *testing.T) {
 com
 `
 
-	b := new(Block)
+	b := new(Blocklist)
 	r := strings.NewReader(list)
 	l := make(map[string]struct{})
 	listRead(r, l)

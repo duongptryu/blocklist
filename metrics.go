@@ -1,4 +1,4 @@
-package block
+package blocklist
 
 import (
 	"sync"
@@ -10,7 +10,7 @@ import (
 
 var blockCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: plugin.Namespace,
-	Subsystem: "block",
+	Subsystem: "blocklist",
 	Name:      "count_total",
 	Help:      "Counter of blocked names.",
 }, []string{"server"})
