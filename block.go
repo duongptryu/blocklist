@@ -1,3 +1,4 @@
+// Package blocklist contains a blocklist plugin for CoreDNS.
 package blocklist
 
 import (
@@ -16,8 +17,11 @@ var log = clog.NewWithPlugin("blocklist")
 
 // Blocklist is the blocklist plugin.
 type Blocklist struct {
-	list map[string]struct{}
+	manualAllow map[string]bool
+	manualBlock map[string]bool
+	lists       map[string]List
 
+	list   map[string]struct{}
 	update map[string]struct{}
 	sync.RWMutex
 	stop chan struct{}
@@ -25,8 +29,13 @@ type Blocklist struct {
 	Next plugin.Handler
 }
 
+// New returns a new Blocklist.
 func New() *Blocklist {
 	return &Blocklist{
+		manualAllow: make(map[string]bool),
+		manualBlock: make(map[string]bool),
+		lists:       make(map[string]List),
+
 		list:   make(map[string]struct{}),
 		update: make(map[string]struct{}),
 		stop:   make(chan struct{}),

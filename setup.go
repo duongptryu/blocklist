@@ -1,7 +1,7 @@
 package blocklist
 
 import (
-	"fmt"
+	"net/url"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -43,20 +43,55 @@ func setup(c *caddy.Controller) error {
 }
 
 func blocklistParse(c *caddy.Controller) (*Blocklist, error) {
+	b := New()
 	for c.Next() {
-		var url string
-		if c.NextArg() {
-			url = c.Val()
-		} else {
-			return nil, c.ArgErr()
-		}
-		if a := c.RemainingArgs(); len(a) > 0 {
-			return nil, c.SyntaxErr("each blockfile directive takes only one URL argument")
+		url, err := expectURLArg(c)
+		if err != nil {
+			return nil, err
 		}
 		for c.NextBlock() {
-
+			var s string
+			var err error
+			switch c.Val() {
+			case "always_allow":
+				s, err = expectOneArg(c)
+				b.manualAllow[s] = true
+			case "block":
+				s, err = expectOneArg(c)
+				b.manualBlock[s] = true
+			default:
+				err = c.ArgErr()
+			}
+			if err != nil {
+				return nil, err
+			}
 		}
-		fmt.Printf("parsed %q\n", url)
+		if url == "override" {
+			continue
+		}
 	}
 	return nil, nil
+}
+
+func expectOneArg(c *caddy.Controller) (string, error) {
+	if !c.NextArg() {
+		return "", c.ArgErr()
+	}
+	ret := c.Val()
+	if a := c.RemainingArgs(); len(a) > 0 {
+		return "", c.SyntaxErr("only one argument on line")
+	}
+	return ret, nil
+}
+
+func expectURLArg(c *caddy.Controller) (string, error) {
+	s, err := expectOneArg(c)
+	if s == "override" {
+		return s, err
+	}
+	u, err := url.Parse(s)
+	if err != nil || !u.IsAbs() {
+		return s, c.SyntaxErr(`valid URL or "override" keyword`)
+	}
+	return u.String(), err
 }
