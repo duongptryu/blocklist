@@ -22,10 +22,12 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("blocklist", err)
 	}
 
+	c.OnFirstStartup(func() error { return metricSetup(c) })
+	c.OnStartup(block.Start)
+	c.OnShutdown(block.Stop)
+
 	c.OnStartup(func() error {
 		metricSetup(c)
-		go func() { block.download() }()
-		go func() { block.refresh() }()
 		return nil
 	})
 
@@ -43,7 +45,7 @@ func setup(c *caddy.Controller) error {
 }
 
 func blocklistParse(c *caddy.Controller) (*Blocklist, error) {
-	b := New()
+	b := New(NewMemoryDB())
 	for c.Next() {
 		url, err := expectURLArg(c)
 		if err != nil {
@@ -69,6 +71,7 @@ func blocklistParse(c *caddy.Controller) (*Blocklist, error) {
 		if url == "override" {
 			continue
 		}
+		b.lists[url] = NewList(url)
 	}
 	return nil, nil
 }

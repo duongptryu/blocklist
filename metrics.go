@@ -1,8 +1,6 @@
 package blocklist
 
 import (
-	"sync"
-
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/mholt/caddy"
@@ -17,8 +15,8 @@ var blockCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help:      "Counter of blocked names.",
 }, []string{"server"})
 
-var once sync.Once
-
-func metricSetup(c *caddy.Controller) {
-	once.Do(func() { metrics.MustRegister(c, blockCount) })
+func metricSetup(c *caddy.Controller) error {
+	// TODO(miki): this should return the error rather than panicing
+	metrics.MustRegister(c, blockCount)
+	return nil
 }

@@ -3,6 +3,7 @@ package blocklist
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestListParse(t *testing.T) {
@@ -13,12 +14,11 @@ func TestListParse(t *testing.T) {
 com
 `
 
-	b := new(Blocklist)
 	r := strings.NewReader(list)
-	l := make(map[string]struct{})
-	listRead(r, l)
-
-	b.list = l
+	l, _ := listRead(r)
+	db := NewMemoryDB()
+	db.Update("test", time.Now(), l)
+	db.update(db.combine())
 
 	tests := []struct {
 		name    string
@@ -30,7 +30,7 @@ com
 	}
 
 	for _, test := range tests {
-		got := b.blocked(test.name)
+		got := db.Blocked(test.name)
 		if got != test.blocked {
 			t.Errorf("Expected %s to be blocked", test.name)
 		}

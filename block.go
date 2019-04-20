@@ -17,29 +17,47 @@ var log = clog.NewWithPlugin("blocklist")
 
 // Blocklist is the blocklist plugin.
 type Blocklist struct {
+	db          *MemoryDB
 	manualAllow map[string]bool
 	manualBlock map[string]bool
-	lists       map[string]List
+	lists       map[string]*List
+	stop, poke  chan struct{}
 
 	list   map[string]struct{}
 	update map[string]struct{}
 	sync.RWMutex
-	stop chan struct{}
 
 	Next plugin.Handler
 }
 
 // New returns a new Blocklist.
-func New() *Blocklist {
+func New(db *MemoryDB) *Blocklist {
 	return &Blocklist{
+		db:          db,
 		manualAllow: make(map[string]bool),
 		manualBlock: make(map[string]bool),
-		lists:       make(map[string]List),
+		lists:       make(map[string]*List),
+		poke:        make(chan struct{}, 1),
 
 		list:   make(map[string]struct{}),
 		update: make(map[string]struct{}),
-		stop:   make(chan struct{}),
 	}
+}
+
+// Start starts the internals of Blocklist.
+func (b *Blocklist) Start() error {
+	b.stop = make(chan struct{})
+	for _, v := range b.lists {
+		go v.Run(b.db, b.stop, b.poke)
+	}
+	return nil
+}
+
+// Stop stops the internals of Blocklist.
+func (b *Blocklist) Stop() error {
+	close(b.stop)
+	b.stop = nil
+	return nil
 }
 
 // ServeDNS implements the plugin.Handler interface.
