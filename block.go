@@ -2,8 +2,6 @@
 package blocklist
 
 import (
-	"sync"
-
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -23,9 +21,6 @@ type Blocklist struct {
 	lists       map[string]*List
 	stop, poke  chan struct{}
 
-	update map[string]struct{}
-	sync.RWMutex
-
 	Next plugin.Handler
 }
 
@@ -37,8 +32,6 @@ func New(db *MemoryDB) *Blocklist {
 		manualBlock: make(map[string]bool),
 		lists:       make(map[string]*List),
 		poke:        make(chan struct{}, 1),
-
-		update: make(map[string]struct{}),
 	}
 }
 
@@ -80,9 +73,6 @@ func (b *Blocklist) Name() string { return "blocklist" }
 
 // blocked returns true when name is in list or is a subdomain for any names in the list. "localhost." is never blocked.
 func (b *Blocklist) blocked(name string) bool {
-	b.RLock()
-	defer b.RUnlock()
-
 	if name == "localhost." {
 		return false
 	}

@@ -30,11 +30,6 @@ func setup(c *caddy.Controller) error {
 	c.OnStartup(block.Start)
 	c.OnShutdown(block.Stop)
 
-	c.OnShutdown(func() error {
-		close(block.stop)
-		return nil
-	})
-
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		block.Next = next
 		return block
