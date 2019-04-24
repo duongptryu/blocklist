@@ -18,7 +18,6 @@ type ListDB interface {
 
 // List represents a single blocklist.
 type List struct {
-	db                     ListDB
 	source                 string
 	refresh, retry, expire time.Duration
 }
@@ -35,7 +34,7 @@ func NewList(source string) *List {
 
 // Run periodically downloads the blocklist and updates the internal database.
 func (l *List) Run(db ListDB, stop <-chan struct{}, poke chan<- struct{}) {
-	delay := l.refresh - time.Now().Sub(l.db.LastFetched(l.source))
+	delay := l.refresh - time.Now().Sub(db.LastFetched(l.source))
 	for {
 		if delay > 0 {
 			select {
@@ -53,7 +52,7 @@ func (l *List) Run(db ListDB, stop <-chan struct{}, poke chan<- struct{}) {
 			log.Errorf("blocklist GET %q: %q", l.source, err)
 			continue
 		}
-		if resp.StatusCode != 204 {
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			log.Errorf("blocklist GET %q: %q", l.source, resp.Status)
 			continue
 		}
@@ -62,7 +61,7 @@ func (l *List) Run(db ListDB, stop <-chan struct{}, poke chan<- struct{}) {
 			log.Errorf("blocklist parse %q: %q", l.source, err)
 			continue
 		}
-		if err := l.db.Update(l.source, now, blocked); err != nil {
+		if err := db.Update(l.source, now, blocked); err != nil {
 			log.Errorf("blocklist GET %q: %q", l.source, resp.Status)
 			continue
 		}

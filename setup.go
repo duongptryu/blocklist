@@ -73,7 +73,7 @@ func blocklistParse(c *caddy.Controller) (*Blocklist, error) {
 		}
 		b.lists[url] = NewList(url)
 	}
-	return nil, nil
+	return b, nil
 }
 
 func expectOneArg(c *caddy.Controller) (string, error) {
