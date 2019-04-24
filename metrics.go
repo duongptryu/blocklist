@@ -15,8 +15,7 @@ var blockCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help:      "Counter of blocked names.",
 }, []string{"server"})
 
-func metricSetup(c *caddy.Controller) error {
+func metricSetup(c *caddy.Controller) {
 	// TODO(miki): this should return the error rather than panicing
 	metrics.MustRegister(c, blockCount)
-	return nil
 }

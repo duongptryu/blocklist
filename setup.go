@@ -22,14 +22,13 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("blocklist", err)
 	}
 
-	c.OnFirstStartup(func() error { return metricSetup(c) })
-	c.OnStartup(block.Start)
-	c.OnShutdown(block.Stop)
-
-	c.OnStartup(func() error {
+	c.OnFirstStartup(func() error {
+		listMetrics(c)
 		metricSetup(c)
 		return nil
 	})
+	c.OnStartup(block.Start)
+	c.OnShutdown(block.Stop)
 
 	c.OnShutdown(func() error {
 		close(block.stop)

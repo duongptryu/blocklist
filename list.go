@@ -7,7 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
+	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // ListDB is the persistent store of blocklist data.
@@ -30,6 +34,19 @@ func NewList(source string) *List {
 		retry:   time.Hour,
 		expire:  7 * 24 * time.Hour,
 	}
+}
+
+var (
+	entries = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: plugin.Namespace,
+		Subsystem: "blocklist",
+		Name:      "list_size",
+		Help:      "count of names on blocklist",
+	}, []string{"list"})
+)
+
+func listMetrics(c *caddy.Controller) {
+	metrics.MustRegister(c, entries)
 }
 
 // Run periodically downloads the blocklist and updates the internal database.
@@ -61,6 +78,7 @@ func (l *List) Run(db ListDB, stop <-chan struct{}, poke chan<- struct{}) {
 			log.Errorf("blocklist parse %q: %q", l.source, err)
 			continue
 		}
+		entries.WithLabelValues(l.source).Set(float64(len(blocked)))
 		if err := db.Update(l.source, now, blocked); err != nil {
 			log.Errorf("blocklist GET %q: %q", l.source, resp.Status)
 			continue
