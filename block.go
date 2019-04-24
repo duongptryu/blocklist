@@ -23,7 +23,6 @@ type Blocklist struct {
 	lists       map[string]*List
 	stop, poke  chan struct{}
 
-	list   map[string]struct{}
 	update map[string]struct{}
 	sync.RWMutex
 
@@ -39,7 +38,6 @@ func New(db *MemoryDB) *Blocklist {
 		lists:       make(map[string]*List),
 		poke:        make(chan struct{}, 1),
 
-		list:   make(map[string]struct{}),
 		update: make(map[string]struct{}),
 	}
 }
@@ -47,6 +45,7 @@ func New(db *MemoryDB) *Blocklist {
 // Start starts the internals of Blocklist.
 func (b *Blocklist) Start() error {
 	b.stop = make(chan struct{})
+	go b.db.Pokee(b.stop, b.poke)
 	for _, v := range b.lists {
 		go v.Run(b.db, b.stop, b.poke)
 	}
@@ -63,10 +62,8 @@ func (b *Blocklist) Stop() error {
 // ServeDNS implements the plugin.Handler interface.
 func (b *Blocklist) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-
 	if b.blocked(state.Name()) {
 		blockCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
-		log.Infof("Blocked %s", state.Name())
 
 		resp := new(dns.Msg)
 		resp.SetRcode(r, dns.RcodeNameError)
@@ -89,13 +86,13 @@ func (b *Blocklist) blocked(name string) bool {
 	if name == "localhost." {
 		return false
 	}
-	_, blocked := b.list[name]
+	blocked := b.db.Blocked(name)
 	if blocked {
 		return true
 	}
 	i, end := dns.NextLabel(name, 0)
 	for !end {
-		_, blocked := b.list[name[i:]]
+		blocked := b.db.Blocked(name[i:])
 		if blocked {
 			return true
 		}
