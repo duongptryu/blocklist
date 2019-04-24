@@ -1,4 +1,4 @@
-module github.com/dichro/coredns-blockfile
+module github.com/dichro/coredns-blocklist
 
 require (
 	github.com/coredns/coredns v1.5.0
