@@ -2,52 +2,32 @@
 
 ## Name
 
-*block* - blocks domains by using pi-hole's block lists.
+*blocklist* - uses pi-hole-like block lists to block nefarious domains.
 
 ## Description
 
-The block plugin will block any domain that is on the block lists. The block lists are downloaded on
-startup or otherwise once a week.
+The blocklist plugin will fetch configured blocklists from the internet and block local clients from resolving the domains listed on them.
 
 For a domain that is blocked we will return a NXDOMAIN response.
 
-THIS IS A PROOF OF CONCEPT. IT IS NOT PRODUCTION QUALITY.
+This plugin is a WIP.
 
 ## Syntax
 
 ~~~ txt
-block
+blocklist https://hosts-file.net/ad_servers.txt
 ~~~
+
+(see also the sample Corefile in this directory)
 
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) the following metric is exported:
 
-* `coredns_block_count_total{server}` - counter of total number of blocked domains.
+* `coredns_blocklist_count_total{server}` - counter of total number of blocked domains.
+* `coredns_blocklist_fetch{list, result}` - counter of list fetch attempts and the results of the fetch operation.
+* `coredns_blocklist_list_size{list}` - number of blocked domains on each configured list.
+
+The `list` label contains the URL of the blocklist in question; the `result` label is either `OK` or a brief error string.
 
 The `server` label indicates which server handled the request, see the *metrics* plugin for details.
-
-## Examples
-
-Block all domain on the block list.
-
-``` corefile
-. {
-  forward . 9.9.9.9
-  block
-}
-```
-
-On startup the block lists are downloaded, and assuming `005.example.org` is on the list, it will
-be blocked, including any subdomains.
-
-~~~
-2018/09/30 08:40:09 [INFO] plugin/block: Block lists updated: 226126 domains added
-2018/09/30 08:40:12 [INFO] plugin/block: Blocked 005.example.org.
-2018/09/30 08:41:41 [INFO] plugin/block: Blocked www.005.example.org.
-~~~
-
-## Bugs
-
-*Block* currently requires a **working** resolver to fetch the downloads. This should be re-worked
-to use the proxy/forwarder (if defined).
