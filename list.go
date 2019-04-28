@@ -43,10 +43,17 @@ var (
 		Name:      "list_size",
 		Help:      "count of names on blocklist",
 	}, []string{"list"})
+	fetches = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: plugin.Namespace,
+		Subsystem: "blocklist",
+		Name:      "fetch",
+		Help:      "count of blocklist fetches",
+	}, []string{"list", "result"})
 )
 
 func listMetrics(c *caddy.Controller) {
 	metrics.MustRegister(c, entries)
+	metrics.MustRegister(c, fetches)
 }
 
 // Run periodically downloads the blocklist and updates the internal database.
@@ -66,21 +73,25 @@ func (l *List) Run(db ListDB, stop <-chan struct{}, poke chan<- struct{}) {
 		// TODO(miki): retain etags?
 		resp, err := http.Get(l.source)
 		if err != nil {
+			fetches.WithLabelValues(l.source, "http_client_error").Inc()
 			log.Errorf("blocklist GET %q: %q", l.source, err)
 			continue
 		}
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			fetches.WithLabelValues(l.source, "http_server_error").Inc()
 			log.Errorf("blocklist GET %q: %q", l.source, resp.Status)
 			continue
 		}
 		blocked, err := listRead(resp.Body)
 		if err != nil {
+			fetches.WithLabelValues(l.source, "parse_error").Inc()
 			log.Errorf("blocklist parse %q: %q", l.source, err)
 			continue
 		}
+		fetches.WithLabelValues(l.source, "OK").Inc()
 		entries.WithLabelValues(l.source).Set(float64(len(blocked)))
 		if err := db.Update(l.source, now, blocked); err != nil {
-			log.Errorf("blocklist GET %q: %q", l.source, resp.Status)
+			log.Errorf("blocklist update %q: %q", l.source, err)
 			continue
 		}
 
