@@ -23,7 +23,6 @@ com
 	db := NewMemoryDB()
 	db.Update("test", time.Now(), l)
 	db.update(db.combine())
-	b := New(db)
 
 	tests := []struct {
 		name    string
@@ -40,7 +39,7 @@ com
 	}
 
 	for _, test := range tests {
-		got := b.blocked(test.name)
+		got := blocked(db, test.name)
 		if got != test.blocked {
 			t.Errorf("Expected %s to be blocked", test.name)
 		}

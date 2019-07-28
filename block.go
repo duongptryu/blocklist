@@ -55,7 +55,7 @@ func (b *Blocklist) Stop() error {
 // ServeDNS implements the plugin.Handler interface.
 func (b *Blocklist) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-	if b.blocked(state.Name()) {
+	if blocked(b.db, state.Name()) {
 		blockCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
 
 		resp := new(dns.Msg)
@@ -71,18 +71,23 @@ func (b *Blocklist) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 // Name implements the Handler interface.
 func (b *Blocklist) Name() string { return "blocklist" }
 
+// Blocker returns true for blocked DNS domains.
+type Blocker interface {
+	Block(string) bool
+}
+
 // blocked returns true when name is in list or is a subdomain for any names in the list. "localhost." is never blocked.
-func (b *Blocklist) blocked(name string) bool {
+func blocked(db Blocker, name string) bool {
 	if name == "localhost." {
 		return false
 	}
-	blocked := b.db.Blocked(name)
+	blocked := db.Block(name)
 	if blocked {
 		return true
 	}
 	i, end := dns.NextLabel(name, 0)
 	for !end {
-		blocked := b.db.Blocked(name[i:])
+		blocked := db.Block(name[i:])
 		if blocked {
 			return true
 		}

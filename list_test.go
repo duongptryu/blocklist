@@ -30,7 +30,7 @@ com
 	}
 
 	for _, test := range tests {
-		got := db.Blocked(test.name)
+		got := blocked(db, test.name)
 		if got != test.blocked {
 			t.Errorf("Expected %s to be blocked", test.name)
 		}

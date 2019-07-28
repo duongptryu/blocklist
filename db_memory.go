@@ -38,8 +38,8 @@ func (db *MemoryDB) Update(source string, fetched time.Time, blocked []string) e
 	return nil
 }
 
-// Blocked returns true if domain is blocked.
-func (db *MemoryDB) Blocked(domain string) bool {
+// Block returns true if domain is blocked.
+func (db *MemoryDB) Block(domain string) bool {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 	return db.blocked[domain]
