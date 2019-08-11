@@ -16,8 +16,8 @@ var log = clog.NewWithPlugin("blocklist")
 // Blocklist is the blocklist plugin.
 type Blocklist struct {
 	db          *MemoryDB
-	manualAllow map[string]bool
-	manualBlock map[string]bool
+	manualAllow HashDB
+	manualBlock HashDB
 	lists       map[string]*List
 	stop, poke  chan struct{}
 
@@ -28,8 +28,8 @@ type Blocklist struct {
 func New(db *MemoryDB) *Blocklist {
 	return &Blocklist{
 		db:          db,
-		manualAllow: make(map[string]bool),
-		manualBlock: make(map[string]bool),
+		manualAllow: make(HashDB),
+		manualBlock: make(HashDB),
 		lists:       make(map[string]*List),
 		poke:        make(chan struct{}, 1),
 	}
@@ -52,10 +52,24 @@ func (b *Blocklist) Stop() error {
 	return nil
 }
 
+func (b *Blocklist) isBlocked(name string) bool {
+	switch {
+	case blocked(b.manualAllow, name):
+		return false
+	case blocked(b.manualBlock, name):
+		return true
+	case blocked(b.db, name):
+		return true
+	default:
+		return false
+	}
+}
+
 // ServeDNS implements the plugin.Handler interface.
 func (b *Blocklist) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-	if blocked(b.db, state.Name()) {
+	block := b.isBlocked(state.Name())
+	if block {
 		blockCount.WithLabelValues(metrics.WithServer(ctx)).Inc()
 
 		resp := new(dns.Msg)

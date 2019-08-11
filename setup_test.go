@@ -12,7 +12,7 @@ func TestSetupValidCfg(t *testing.T) {
 		`blocklist http://baz.wop/dir/path {
 			always_allow fish
 		}`,
-		`blocklist file:///a {
+		`blocklist override {
 			block b
 			always_allow c
 		}`,

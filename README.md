@@ -1,4 +1,4 @@
-# block
+# blocklist
 
 ## Name
 
@@ -16,6 +16,10 @@ This plugin is a WIP.
 
 ~~~ txt
 blocklist https://hosts-file.net/ad_servers.txt
+blocklist override {
+    always_allow employer.com
+    block competitor.com
+}
 ~~~
 
 (see also the sample Corefile in this directory)
